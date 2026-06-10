@@ -34,13 +34,6 @@ export default function HomeScreen({
         </View>
       </View>
 
-      <View style={styles.infoBox}>
-        <Text style={styles.infoText}>
-          Sistema pensado para locales de comida rápida, usando validaciones,
-          control de stock y registro ordenado de productos.
-        </Text>
-      </View>
-
       <CustomButton
         title="Agregar producto"
         onPress={() => goToScreen('addProduct')}

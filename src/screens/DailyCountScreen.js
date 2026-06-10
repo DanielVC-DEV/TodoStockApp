@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ export default function DailyCountScreen({
   movements,
   setMovements,
   goToScreen,
+  showAppMessage,
 }) {
   const [formData, setFormData] = useState({
     productId: '',
@@ -30,6 +30,20 @@ export default function DailyCountScreen({
   const selectedProduct = products.find(
     (product) => product.id === formData.productId
   );
+
+  const countedStockNumber = Number(formData.countedStock);
+  const hasValidCountedStock =
+    formData.countedStock.trim() !== '' && !isNaN(countedStockNumber);
+
+  const calculatedOutput =
+    selectedProduct && hasValidCountedStock
+      ? selectedProduct.currentStock - countedStockNumber
+      : 0;
+
+  const isCountGreaterThanSystemStock =
+    selectedProduct && hasValidCountedStock
+      ? countedStockNumber > selectedProduct.currentStock
+      : false;
 
   function handleChange(fieldName, value) {
     setFormData({
@@ -56,7 +70,8 @@ export default function DailyCountScreen({
     if (hasErrors) {
       setErrors(validationErrors);
 
-      Alert.alert(
+      showAppMessage(
+        'error',
         'Datos incompletos',
         'Revisa los campos marcados antes de guardar el conteo.'
       );
@@ -65,20 +80,26 @@ export default function DailyCountScreen({
     }
 
     if (!selectedProduct) {
-      Alert.alert('Error', 'El producto seleccionado no existe.');
+      showAppMessage(
+        'error',
+        'Producto no encontrado',
+        'El producto seleccionado no existe o fue eliminado.'
+      );
+
       return;
     }
 
     const previousStock = selectedProduct.currentStock;
     const countedStock = Number(formData.countedStock);
     const difference = countedStock - previousStock;
-    const calculatedOutput = previousStock - countedStock;
 
     if (countedStock > previousStock) {
-      Alert.alert(
+      showAppMessage(
+        'error',
         'Conteo inválido',
-        'La cantidad contada no puede ser mayor al stock registrado en el sistema. Si llegó más mercadería, debes registrarla desde la opción Entrada.'
+        'La cantidad contada no puede ser mayor al stock registrado. Si llegó más mercadería, debes usar la opción Entrada.'
       );
+
       return;
     }
 
@@ -102,7 +123,7 @@ export default function DailyCountScreen({
       previousStock,
       countedStock,
       difference,
-      calculatedOutput: calculatedOutput > 0 ? calculatedOutput : 0,
+      calculatedOutput: previousStock - countedStock,
       reason: 'Conteo físico de cierre',
       createdAt: new Date().toLocaleDateString('es-CL'),
       createdTime: new Date().toLocaleTimeString('es-CL', {
@@ -115,14 +136,16 @@ export default function DailyCountScreen({
     setMovements([newMovement, ...movements]);
 
     if (difference < 0) {
-      Alert.alert(
+      showAppMessage(
+        'success',
         'Conteo guardado',
         `Se registró una salida calculada de ${Math.abs(
           difference
         )} ${selectedProduct.unit}.`
       );
     } else {
-      Alert.alert(
+      showAppMessage(
+        'info',
         'Conteo guardado',
         'El stock contado coincide con el stock registrado. No se realizaron salidas.'
       );
@@ -163,6 +186,7 @@ export default function DailyCountScreen({
             onPress={() => selectProduct(product.id)}
           >
             <Text style={styles.optionTitle}>{product.name}</Text>
+
             <Text style={styles.optionText}>
               Stock en sistema: {product.currentStock} {product.unit}
             </Text>
@@ -177,9 +201,9 @@ export default function DailyCountScreen({
       {selectedProduct ? (
         <View style={styles.summaryBox}>
           <Text style={styles.summaryTitle}>Producto seleccionado</Text>
-          <Text style={styles.summaryText}>
-            {selectedProduct.name}
-          </Text>
+
+          <Text style={styles.summaryText}>{selectedProduct.name}</Text>
+
           <Text style={styles.summaryText}>
             Stock actual en sistema: {selectedProduct.currentStock}{' '}
             {selectedProduct.unit}
@@ -208,30 +232,22 @@ export default function DailyCountScreen({
             Stock contado: {formData.countedStock} {selectedProduct.unit}
           </Text>
 
-          {!isNaN(Number(formData.countedStock)) &&
-            Number(formData.countedStock) <= selectedProduct.currentStock ? (
+          {hasValidCountedStock && countedStockNumber <= selectedProduct.currentStock ? (
             <Text style={styles.outputText}>
-              Salida calculada:{' '}
-              {selectedProduct.currentStock - Number(formData.countedStock)}{' '}
-              {selectedProduct.unit}
+              Salida calculada: {calculatedOutput} {selectedProduct.unit}
             </Text>
           ) : null}
 
-          {!isNaN(Number(formData.countedStock)) &&
-            Number(formData.countedStock) > selectedProduct.currentStock ? (
+          {isCountGreaterThanSystemStock ? (
             <Text style={styles.errorText}>
-              La cantidad contada es mayor al stock del sistema. Para aumentar stock usa
-              la opción Entrada.
+              La cantidad contada es mayor al stock del sistema. Para aumentar
+              stock usa la opción Entrada.
             </Text>
           ) : null}
-          
         </View>
       ) : null}
 
-      <CustomButton
-        title="Guardar conteo"
-        onPress={handleSaveDailyCount}
-      />
+      <CustomButton title="Guardar conteo" onPress={handleSaveDailyCount} />
 
       <CustomButton
         title="Volver al inicio"
@@ -350,6 +366,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.danger,
     fontSize: 13,
+    marginTop: 8,
     marginBottom: 8,
   },
 });

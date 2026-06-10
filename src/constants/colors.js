@@ -21,6 +21,14 @@ const COLORS = {
   infoText: '#075985',
 
   secondaryButton: '#E2E8F0',
+
+  successLight: '#DCFCE7',
+  successDark: '#166534',
+
+  dangerDark: '#991B1B',
+
+  warningLight: '#FEF3C7',
+  warningDark: '#92400E',
 };
 
 export default COLORS;

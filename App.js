@@ -10,6 +10,8 @@ import StockMovementScreen from './src/screens/StockMovementScreen';
 import { loadMovements, saveMovements } from './src/services/movementStorage';
 import { loadProducts, saveProducts } from './src/services/productStorage';
 import DailyCountScreen from './src/screens/DailyCountScreen';
+import AppMessage from './src/components/AppMessage';
+
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -17,6 +19,20 @@ export default function App() {
   const [movements, setMovements] = useState([]);
 
   const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const [appMessage, setAppMessage] = useState(null);
+
+  function showAppMessage(type, title, description) {
+  setAppMessage({
+    type,
+    title,
+    description,
+  });
+
+  setTimeout(() => {
+    setAppMessage(null);
+  }, 3500);
+}
 
   useEffect(() => {
     async function loadStoredData() {
@@ -68,6 +84,11 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
+    
+      <AppMessage
+      message={appMessage}
+      onClose={() => setAppMessage(null)}
+      />
 
       {currentScreen === 'home' && (
         <HomeScreen
@@ -82,6 +103,7 @@ export default function App() {
           products={products}
           setProducts={setProducts}
           goToScreen={setCurrentScreen}
+          showAppMessage={showAppMessage}
         />
       )}
 
@@ -108,7 +130,7 @@ export default function App() {
           goToScreen={setCurrentScreen}
         />
       )}
-      
+
       {currentScreen === 'dailyCount' && (
         <DailyCountScreen
           products={products}
@@ -116,6 +138,7 @@ export default function App() {
           movements={movements}
           setMovements={setMovements}
           goToScreen={setCurrentScreen}
+          showAppMessage={showAppMessage}
         />
       )}
     </View>

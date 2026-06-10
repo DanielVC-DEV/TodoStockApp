@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import CustomButton from '../components/CustomButton';
 import InputField from '../components/InputField';
@@ -10,6 +10,7 @@ export default function AddProductScreen({
   products,
   setProducts,
   goToScreen,
+  showAppMessage,
 }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -54,7 +55,8 @@ export default function AddProductScreen({
     if (hasErrors) {
       setErrors(validationErrors);
 
-      Alert.alert(
+      showAppMessage(
+        'error',
         'Datos incompletos',
         'Revisa los campos marcados antes de guardar el producto.'
       );
@@ -74,7 +76,8 @@ export default function AddProductScreen({
 
     setProducts([...products, newProduct]);
 
-    Alert.alert(
+    showAppMessage(
+      'success',
       'Producto guardado',
       'El producto fue registrado correctamente.'
     );

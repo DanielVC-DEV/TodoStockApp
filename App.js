@@ -11,6 +11,7 @@ import SCREEN_NAMES from './src/navigation/screenNames';
 import AddProductScreen from './src/screens/AddProductScreen';
 import DailyCountScreen from './src/screens/DailyCountScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import EditProductScreen from './src/screens/EditProductScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import MovementHistoryScreen from './src/screens/MovementHistoryScreen';
 import StockMovementScreen from './src/screens/StockMovementScreen';
@@ -86,17 +87,23 @@ export default function App() {
     );
   }
 
-  function navigateToScreen(navigation, screenKey) {
+  function navigateToScreen(navigation, screenKey, params = {}) {
     const screenMap = {
       home: SCREEN_NAMES.HOME,
       addProduct: SCREEN_NAMES.ADD_PRODUCT,
+      editProduct: SCREEN_NAMES.EDIT_PRODUCT,
       inventory: SCREEN_NAMES.INVENTORY,
       stockMovement: SCREEN_NAMES.STOCK_MOVEMENT,
       dailyCount: SCREEN_NAMES.DAILY_COUNT,
       movementHistory: SCREEN_NAMES.MOVEMENT_HISTORY,
     };
 
-    navigation.navigate(screenMap[screenKey]);
+    if (screenKey === 'home') {
+      navigation.navigate(SCREEN_NAMES.HOME);
+      return;
+    }
+
+    navigation.navigate(screenMap[screenKey], params);
   }
 
   return (
@@ -150,6 +157,25 @@ export default function App() {
               />
             )}
           </Stack.Screen>
+          
+          <Stack.Screen
+            name={SCREEN_NAMES.EDIT_PRODUCT}
+            options={{ title: 'Editar producto' }}
+          >
+            {({ navigation, route }) => (
+              <EditProductScreen
+                route={route}
+                products={products}
+                setProducts={setProducts}
+                movements={movements}
+                setMovements={setMovements}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
+              }
+                showAppMessage={showAppMessage}
+              />
+            )}
+          </Stack.Screen>
 
           <Stack.Screen
             name={SCREEN_NAMES.INVENTORY}
@@ -158,9 +184,11 @@ export default function App() {
             {({ navigation }) => (
               <InventoryScreen
                 products={products}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                setProducts={setProducts}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
+                showAppMessage={showAppMessage}
               />
             )}
           </Stack.Screen>
@@ -208,8 +236,9 @@ export default function App() {
             {({ navigation }) => (
               <MovementHistoryScreen
                 movements={movements}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                products={products}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
               />
             )}

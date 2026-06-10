@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+
 import COLORS from '../constants/colors';
 
 export default function CustomButton({
@@ -6,27 +7,38 @@ export default function CustomButton({
   onPress,
   variant = 'primary',
 }) {
-  const isPrimary = variant === 'primary';
+  const buttonStyle = getButtonStyle(variant);
+  const textStyle = getTextStyle(variant);
 
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        isPrimary ? styles.primaryButton : styles.secondaryButton,
-      ]}
+      style={[styles.button, buttonStyle]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          isPrimary ? styles.primaryText : styles.secondaryText,
-        ]}
-      >
-        {title}
-      </Text>
+      <Text style={[styles.buttonText, textStyle]}>{title}</Text>
     </TouchableOpacity>
   );
+}
+
+function getButtonStyle(variant) {
+  if (variant === 'secondary') {
+    return styles.secondaryButton;
+  }
+
+  if (variant === 'danger') {
+    return styles.dangerButton;
+  }
+
+  return styles.primaryButton;
+}
+
+function getTextStyle(variant) {
+  if (variant === 'secondary') {
+    return styles.secondaryText;
+  }
+
+  return styles.primaryText;
 }
 
 const styles = StyleSheet.create({
@@ -41,6 +53,9 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     backgroundColor: COLORS.secondaryButton,
+  },
+  dangerButton: {
+    backgroundColor: COLORS.danger,
   },
   buttonText: {
     fontSize: 16,

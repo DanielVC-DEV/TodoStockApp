@@ -1,6 +1,7 @@
 const SCREEN_NAMES = {
   HOME: 'Inicio',
   ADD_PRODUCT: 'AgregarProducto',
+  EDIT_PRODUCT: 'EditarProducto',
   INVENTORY: 'Inventario',
   STOCK_MOVEMENT: 'MovimientoStock',
   DAILY_COUNT: 'ConteoCierre',

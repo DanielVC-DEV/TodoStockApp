@@ -3,7 +3,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import CustomButton from '../components/CustomButton';
 import COLORS from '../constants/colors';
 
-export default function MovementHistoryScreen({ movements, goToScreen }) {
+export default function MovementHistoryScreen({
+  movements,
+  products,
+  goToScreen,
+}) {
   return (
     <ScrollView
       style={styles.container}
@@ -13,77 +17,84 @@ export default function MovementHistoryScreen({ movements, goToScreen }) {
       <Text style={styles.screenTitle}>Historial</Text>
 
       <Text style={styles.description}>
-        Registro de entradas y salidas realizadas en el inventario.
+        Registro de entradas, salidas y conteos de cierre realizados en el
+        inventario.
       </Text>
 
       {movements.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Sin movimientos registrados</Text>
+
           <Text style={styles.emptyText}>
-            Cuando registres entradas o salidas de stock, aparecerán en esta
-            sección.
+            Cuando registres entradas, salidas o conteos de stock, aparecerán en
+            esta sección.
           </Text>
         </View>
       ) : (
-        movements.map((movement) => (
-          <View key={movement.id} style={styles.movementCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.productName}>{movement.productName}</Text>
+        movements.map((movement) => {
+          const currentProduct = products.find(
+            (product) => product.id === movement.productId
+          );
 
-              <Text
-                style={[
-                  styles.badge,
-                  movement.type === 'entrada' && styles.entryBadge,
-                  movement.type === 'salida' && styles.exitBadge,
-                  movement.type === 'conteo_cierre' && styles.countBadge,
-                ]}
-              >
-                {movement.type === 'entrada' && 'Entrada'}
-                {movement.type === 'salida' && 'Salida'}
-                {movement.type === 'conteo_cierre' && 'Conteo'}
+          const productName = currentProduct
+            ? currentProduct.name
+            : movement.productName;
+
+          return (
+            <View key={movement.id} style={styles.movementCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.productName}>{productName}</Text>
+
+                <Text
+                  style={[
+                    styles.badge,
+                    movement.type === 'entrada' && styles.entryBadge,
+                    movement.type === 'salida' && styles.exitBadge,
+                    movement.type === 'conteo_cierre' && styles.countBadge,
+                  ]}
+                >
+                  {movement.type === 'entrada' && 'Entrada'}
+                  {movement.type === 'salida' && 'Salida'}
+                  {movement.type === 'conteo_cierre' && 'Conteo'}
+                </Text>
+              </View>
+
+              {movement.type !== 'conteo_cierre' ? (
+                <Text style={styles.text}>
+                  Cantidad: {movement.quantity}
+                </Text>
+              ) : null}
+
+              {movement.type === 'conteo_cierre' ? (
+                <>
+                  <Text style={styles.text}>
+                    Stock anterior: {movement.previousStock}
+                  </Text>
+
+                  <Text style={styles.text}>
+                    Stock contado: {movement.countedStock}
+                  </Text>
+
+                  {movement.difference < 0 ? (
+                    <Text style={styles.outputText}>
+                      Salida calculada: {Math.abs(movement.difference)}
+                    </Text>
+                  ) : null}
+
+                  {movement.difference === 0 ? (
+                    <Text style={styles.text}>Sin diferencia de stock</Text>
+                  ) : null}
+                </>
+              ) : null}
+
+              <Text style={styles.text}>Motivo: {movement.reason}</Text>
+
+              <Text style={styles.date}>
+                Fecha: {movement.createdAt} - {movement.createdTime}
               </Text>
             </View>
-
-            {movement.type !== 'conteo_cierre' ? (
-              <Text style={styles.text}>
-                Cantidad: {movement.quantity}
-              </Text>
-            ) : null}
-            
-            {movement.type === 'conteo_cierre' ? (
-              <>
-                <Text style={styles.text}>
-                  Stock anterior: {movement.previousStock}
-                </Text>
-
-                <Text style={styles.text}>
-                  Stock contado: {movement.countedStock}
-                </Text>
-
-                {movement.difference < 0 ? (
-                  <Text style={styles.outputText}>
-                    Salida calculada: {Math.abs(movement.difference)}
-                  </Text>
-                ) : null}
-
-
-                {movement.difference === 0 ? (
-                  <Text style={styles.text}>
-                    Sin diferencia de stock
-                  </Text>
-                ) : null}
-              </>
-            ) : null}
-
-            <Text style={styles.text}>
-              Motivo: {movement.reason}
-            </Text>
-
-            <Text style={styles.date}>
-              Fecha: {movement.createdAt} - {movement.createdTime}
-            </Text>
-          </View>
-        ))
+          );
+        })
       )}
 
       <CustomButton
@@ -154,8 +165,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+    gap: 10,
   },
   productName: {
+    flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.textDark,
@@ -174,23 +187,23 @@ const styles = StyleSheet.create({
   exitBadge: {
     backgroundColor: COLORS.danger,
   },
+  countBadge: {
+    backgroundColor: COLORS.warning,
+  },
   text: {
     fontSize: 15,
     color: COLORS.textMedium,
     marginBottom: 5,
-  },
-  date: {
-    fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 8,
-  },
-  countBadge: {
-    backgroundColor: COLORS.warning,
   },
   outputText: {
     fontSize: 15,
     color: COLORS.danger,
     fontWeight: 'bold',
     marginBottom: 5,
+  },
+  date: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 8,
   },
 });

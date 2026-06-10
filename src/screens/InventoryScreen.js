@@ -1,10 +1,59 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import CustomButton from '../components/CustomButton';
 import ProductCard from '../components/ProductCard';
 import COLORS from '../constants/colors';
 
-export default function InventoryScreen({ products, goToScreen }) {
+export default function InventoryScreen({
+  products,
+  setProducts,
+  goToScreen,
+  showAppMessage,
+}) {
+  function confirmDeleteProduct(productId) {
+    const selectedProduct = products.find((product) => product.id === productId);
+
+    if (!selectedProduct) {
+      showAppMessage(
+        'error',
+        'Producto no encontrado',
+        'El producto que intentas eliminar no existe.'
+      );
+
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar producto',
+      `¿Seguro que deseas eliminar "${selectedProduct.name}"? Esta acción no se puede deshacer.`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => deleteProduct(productId),
+        },
+      ]
+    );
+  }
+
+  function deleteProduct(productId) {
+    const updatedProducts = products.filter(
+      (product) => product.id !== productId
+    );
+
+    setProducts(updatedProducts);
+
+    showAppMessage(
+      'success',
+      'Producto eliminado',
+      'El producto fue eliminado correctamente del inventario.'
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -21,6 +70,7 @@ export default function InventoryScreen({ products, goToScreen }) {
       {products.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Sin productos registrados</Text>
+
           <Text style={styles.emptyText}>
             Agrega tu primer producto para comenzar a controlar el inventario
             del local.
@@ -28,7 +78,16 @@ export default function InventoryScreen({ products, goToScreen }) {
         </View>
       ) : (
         products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            onEdit={() =>
+              goToScreen('editProduct', {
+                productId: product.id,
+              })
+            }
+            onDelete={() => confirmDeleteProduct(product.id)}
+          />
         ))
       )}
 

@@ -33,18 +33,47 @@ export default function MovementHistoryScreen({ movements, goToScreen }) {
               <Text
                 style={[
                   styles.badge,
-                  movement.type === 'entrada'
-                    ? styles.entryBadge
-                    : styles.exitBadge,
+                  movement.type === 'entrada' && styles.entryBadge,
+                  movement.type === 'salida' && styles.exitBadge,
+                  movement.type === 'conteo_cierre' && styles.countBadge,
                 ]}
               >
-                {movement.type === 'entrada' ? 'Entrada' : 'Salida'}
+                {movement.type === 'entrada' && 'Entrada'}
+                {movement.type === 'salida' && 'Salida'}
+                {movement.type === 'conteo_cierre' && 'Conteo'}
               </Text>
             </View>
 
-            <Text style={styles.text}>
-              Cantidad: {movement.quantity}
-            </Text>
+            {movement.type !== 'conteo_cierre' ? (
+              <Text style={styles.text}>
+                Cantidad: {movement.quantity}
+              </Text>
+            ) : null}
+            
+            {movement.type === 'conteo_cierre' ? (
+              <>
+                <Text style={styles.text}>
+                  Stock anterior: {movement.previousStock}
+                </Text>
+
+                <Text style={styles.text}>
+                  Stock contado: {movement.countedStock}
+                </Text>
+
+                {movement.difference < 0 ? (
+                  <Text style={styles.outputText}>
+                    Salida calculada: {Math.abs(movement.difference)}
+                  </Text>
+                ) : null}
+
+
+                {movement.difference === 0 ? (
+                  <Text style={styles.text}>
+                    Sin diferencia de stock
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
 
             <Text style={styles.text}>
               Motivo: {movement.reason}
@@ -154,5 +183,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textLight,
     marginTop: 8,
+  },
+  countBadge: {
+    backgroundColor: COLORS.warning,
+  },
+  outputText: {
+    fontSize: 15,
+    color: COLORS.danger,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });

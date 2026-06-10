@@ -9,6 +9,7 @@ import MovementHistoryScreen from './src/screens/MovementHistoryScreen';
 import StockMovementScreen from './src/screens/StockMovementScreen';
 import { loadMovements, saveMovements } from './src/services/movementStorage';
 import { loadProducts, saveProducts } from './src/services/productStorage';
+import DailyCountScreen from './src/screens/DailyCountScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -104,6 +105,16 @@ export default function App() {
       {currentScreen === 'movementHistory' && (
         <MovementHistoryScreen
           movements={movements}
+          goToScreen={setCurrentScreen}
+        />
+      )}
+      
+      {currentScreen === 'dailyCount' && (
+        <DailyCountScreen
+          products={products}
+          setProducts={setProducts}
+          movements={movements}
+          setMovements={setMovements}
           goToScreen={setCurrentScreen}
         />
       )}

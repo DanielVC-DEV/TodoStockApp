@@ -49,6 +49,11 @@ export default function HomeScreen({
         variant="secondary"
         onPress={() => goToScreen('stockMovement')}
       />
+      <CustomButton
+        title="Conteo de cierre diario"
+        variant="secondary"
+        onPress={() => goToScreen('dailyCount')}
+      />
 
       <CustomButton
         title="Historial de movimientos"

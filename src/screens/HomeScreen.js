@@ -44,7 +44,19 @@ export default function HomeScreen({
         variant="secondary"
         onPress={() => goToScreen('inventory')}
       />
+      <CustomButton
+        title="Registrar movimiento"
+        variant="secondary"
+        onPress={() => goToScreen('stockMovement')}
+      />
+
+      <CustomButton
+        title="Historial de movimientos"
+        variant="secondary"
+        onPress={() => goToScreen('movementHistory')}
+      />
     </View>
+    
   );
 }
 

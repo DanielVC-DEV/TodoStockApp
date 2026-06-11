@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../components/CustomButton';
+import FormScreenWrapper from '../components/FormScreenWrapper';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateDailyCountForm } from '../utils/dailyCountValidations';
@@ -20,30 +15,18 @@ export default function DailyCountScreen({
   goToScreen,
   showAppMessage,
 }) {
+  const [selectedProductId, setSelectedProductId] = useState('');
+
   const [formData, setFormData] = useState({
-    productId: '',
     countedStock: '',
+    reason: '',
   });
 
   const [errors, setErrors] = useState({});
 
   const selectedProduct = products.find(
-    (product) => product.id === formData.productId
+    (product) => product.id === selectedProductId
   );
-
-  const countedStockNumber = Number(formData.countedStock);
-  const hasValidCountedStock =
-    formData.countedStock.trim() !== '' && !isNaN(countedStockNumber);
-
-  const calculatedOutput =
-    selectedProduct && hasValidCountedStock
-      ? selectedProduct.currentStock - countedStockNumber
-      : 0;
-
-  const isCountGreaterThanSystemStock =
-    selectedProduct && hasValidCountedStock
-      ? countedStockNumber > selectedProduct.currentStock
-      : false;
 
   function handleChange(fieldName, value) {
     setFormData({
@@ -60,11 +43,23 @@ export default function DailyCountScreen({
   }
 
   function selectProduct(productId) {
-    handleChange('productId', productId);
+    setSelectedProductId(productId);
+
+    if (errors.productId) {
+      setErrors({
+        ...errors,
+        productId: '',
+      });
+    }
   }
 
   function handleSaveDailyCount() {
-    const validationErrors = validateDailyCountForm(formData);
+    const validationErrors = validateDailyCountForm({
+      productId: selectedProductId,
+      countedStock: formData.countedStock,
+      reason: formData.reason,
+    });
+
     const hasErrors = Object.keys(validationErrors).length > 0;
 
     if (hasErrors) {
@@ -73,7 +68,7 @@ export default function DailyCountScreen({
       showAppMessage(
         'error',
         'Datos incompletos',
-        'Revisa los campos marcados antes de guardar el conteo.'
+        'Revisa los campos marcados antes de registrar el conteo.'
       );
 
       return;
@@ -83,28 +78,29 @@ export default function DailyCountScreen({
       showAppMessage(
         'error',
         'Producto no encontrado',
-        'El producto seleccionado no existe o fue eliminado.'
+        'Selecciona un producto válido para registrar el conteo.'
       );
 
       return;
     }
 
-    const previousStock = selectedProduct.currentStock;
+    const previousStock = Number(selectedProduct.currentStock);
     const countedStock = Number(formData.countedStock);
-    const difference = countedStock - previousStock;
 
     if (countedStock > previousStock) {
       showAppMessage(
-        'error',
-        'Conteo inválido',
-        'La cantidad contada no puede ser mayor al stock registrado. Si llegó más mercadería, debes usar la opción Entrada.'
+        'warning',
+        'Conteo mayor al sistema',
+        'El stock contado no puede ser mayor al stock del sistema. Si llegó mercadería nueva, registra una entrada.'
       );
 
       return;
     }
 
+    const difference = countedStock - previousStock;
+
     const updatedProducts = products.map((product) => {
-      if (product.id !== selectedProduct.id) {
+      if (product.id !== selectedProductId) {
         return product;
       }
 
@@ -114,19 +110,19 @@ export default function DailyCountScreen({
       };
     });
 
+    const currentDate = new Date();
+
     const newMovement = {
       id: Date.now().toString(),
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       type: 'conteo_cierre',
-      quantity: Math.abs(difference),
       previousStock,
       countedStock,
       difference,
-      calculatedOutput: previousStock - countedStock,
-      reason: 'Conteo físico de cierre',
-      createdAt: new Date().toLocaleDateString('es-CL'),
-      createdTime: new Date().toLocaleTimeString('es-CL', {
+      reason: formData.reason.trim(),
+      createdAt: currentDate.toLocaleDateString('es-CL'),
+      createdTime: currentDate.toLocaleTimeString('es-CL', {
         hour: '2-digit',
         minute: '2-digit',
       }),
@@ -135,44 +131,36 @@ export default function DailyCountScreen({
     setProducts(updatedProducts);
     setMovements([newMovement, ...movements]);
 
-    if (difference < 0) {
-      showAppMessage(
-        'success',
-        'Conteo guardado',
-        `Se registró una salida calculada de ${Math.abs(
-          difference
-        )} ${selectedProduct.unit}.`
-      );
-    } else {
-      showAppMessage(
-        'info',
-        'Conteo guardado',
-        'El stock contado coincide con el stock registrado. No se realizaron salidas.'
-      );
-    }
+    showAppMessage(
+      'success',
+      'Conteo registrado',
+      'El stock físico fue registrado correctamente.'
+    );
 
     goToScreen('inventory');
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <FormScreenWrapper>
       <Text style={styles.screenTitle}>Conteo de cierre</Text>
 
       <Text style={styles.description}>
-        Cuenta cuánto queda físicamente al final del día. La app calculará
-        cuántos productos salieron y actualizará el stock real.
+        Registra el stock físico contado al final del día para calcular
+        diferencias con el sistema.
       </Text>
 
-      <Text style={styles.sectionTitle}>Seleccionar producto *</Text>
+      <Text style={styles.sectionTitle}>Producto</Text>
+
+      {errors.productId ? (
+        <Text style={styles.errorText}>{errors.productId}</Text>
+      ) : null}
 
       {products.length === 0 ? (
         <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Sin productos registrados</Text>
+
           <Text style={styles.emptyText}>
-            No hay productos registrados. Primero debes agregar un producto.
+            Primero debes agregar productos al inventario.
           </Text>
         </View>
       ) : (
@@ -180,93 +168,78 @@ export default function DailyCountScreen({
           <TouchableOpacity
             key={product.id}
             style={[
-              styles.optionCard,
-              formData.productId === product.id && styles.optionSelected,
+              styles.productOption,
+              selectedProductId === product.id && styles.productOptionSelected,
             ]}
             onPress={() => selectProduct(product.id)}
           >
-            <Text style={styles.optionTitle}>{product.name}</Text>
+            <View>
+              <Text
+                style={[
+                  styles.productName,
+                  selectedProductId === product.id &&
+                    styles.productNameSelected,
+                ]}
+              >
+                {product.name}
+              </Text>
 
-            <Text style={styles.optionText}>
-              Stock en sistema: {product.currentStock} {product.unit}
-            </Text>
+              <Text
+                style={[
+                  styles.productStock,
+                  selectedProductId === product.id &&
+                    styles.productStockSelected,
+                ]}
+              >
+                Stock en sistema: {product.currentStock} {product.unit}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))
       )}
 
-      {errors.productId ? (
-        <Text style={styles.errorText}>{errors.productId}</Text>
-      ) : null}
-
       {selectedProduct ? (
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>Producto seleccionado</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>Stock actual del sistema</Text>
 
-          <Text style={styles.summaryText}>{selectedProduct.name}</Text>
-
-          <Text style={styles.summaryText}>
-            Stock actual en sistema: {selectedProduct.currentStock}{' '}
-            {selectedProduct.unit}
+          <Text style={styles.infoText}>
+            {selectedProduct.currentStock} {selectedProduct.unit}
           </Text>
         </View>
       ) : null}
 
       <InputField
-        label="Cantidad contada al cierre *"
-        placeholder="Ej: 27"
+        label="Stock físico contado *"
+        placeholder="Ej: 45"
         keyboardType="numeric"
         value={formData.countedStock}
         onChangeText={(value) => handleChange('countedStock', value)}
         error={errors.countedStock}
       />
 
-      {selectedProduct && formData.countedStock.trim() !== '' ? (
-        <View style={styles.calculationBox}>
-          <Text style={styles.calculationTitle}>Resultado estimado</Text>
+      <InputField
+        label="Motivo u observación *"
+        placeholder="Ej: Conteo de cierre diario"
+        value={formData.reason}
+        onChangeText={(value) => handleChange('reason', value)}
+        error={errors.reason}
+      />
 
-          <Text style={styles.calculationText}>
-            Stock sistema: {selectedProduct.currentStock} {selectedProduct.unit}
-          </Text>
-
-          <Text style={styles.calculationText}>
-            Stock contado: {formData.countedStock} {selectedProduct.unit}
-          </Text>
-
-          {hasValidCountedStock && countedStockNumber <= selectedProduct.currentStock ? (
-            <Text style={styles.outputText}>
-              Salida calculada: {calculatedOutput} {selectedProduct.unit}
-            </Text>
-          ) : null}
-
-          {isCountGreaterThanSystemStock ? (
-            <Text style={styles.errorText}>
-              La cantidad contada es mayor al stock del sistema. Para aumentar
-              stock usa la opción Entrada.
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      <CustomButton title="Guardar conteo" onPress={handleSaveDailyCount} />
+      <CustomButton
+        title="Registrar conteo"
+        onPress={handleSaveDailyCount}
+      />
 
       <CustomButton
         title="Volver al inicio"
         variant="secondary"
         onPress={() => goToScreen('home')}
       />
-    </ScrollView>
+    </FormScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
   screenTitle: {
     fontSize: 30,
     fontWeight: 'bold',
@@ -285,88 +258,79 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textDark,
     marginBottom: 10,
-    marginTop: 10,
   },
-  emptyCard: {
+  productOption: {
     backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: COLORS.textMedium,
-  },
-  optionCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
+    elevation: 2,
   },
-  optionSelected: {
+  productOptionSelected: {
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.infoLight,
   },
-  optionTitle: {
+  productName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textDark,
     marginBottom: 4,
   },
-  optionText: {
+  productNameSelected: {
+    color: COLORS.white,
+  },
+  productStock: {
     fontSize: 14,
     color: COLORS.textMedium,
   },
-  summaryBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
+  productStockSelected: {
+    color: COLORS.white,
+  },
+  infoBox: {
+    backgroundColor: COLORS.infoLight,
+    borderRadius: 16,
     padding: 16,
-    marginTop: 10,
-    marginBottom: 16,
+    marginVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.info,
+  },
+  infoTitle: {
+    fontSize: 14,
+    color: COLORS.infoText,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  infoText: {
+    fontSize: 20,
+    color: COLORS.infoText,
+    fontWeight: 'bold',
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
+    elevation: 2,
   },
-  summaryTitle: {
-    fontSize: 16,
+  emptyTitle: {
+    fontSize: 17,
     fontWeight: 'bold',
     color: COLORS.textDark,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  summaryText: {
-    fontSize: 15,
+  emptyText: {
+    fontSize: 14,
     color: COLORS.textMedium,
-    marginBottom: 4,
-  },
-  calculationBox: {
-    backgroundColor: COLORS.infoLight,
-    borderRadius: 14,
-    padding: 16,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  calculationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.infoText,
-    marginBottom: 8,
-  },
-  calculationText: {
-    fontSize: 15,
-    color: COLORS.infoText,
-    marginBottom: 4,
-  },
-  outputText: {
-    fontSize: 16,
-    color: COLORS.danger,
-    fontWeight: 'bold',
-    marginTop: 8,
+    lineHeight: 21,
   },
   errorText: {
     color: COLORS.danger,
     fontSize: 13,
-    marginTop: 8,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
 });

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import CategorySelector from '../components/CategorySelector';
 import CustomButton from '../components/CustomButton';
+import FormScreenWrapper from '../components/FormScreenWrapper';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateProductForm } from '../utils/productValidations';
@@ -79,9 +80,7 @@ export default function AddProductScreen({
       createdAt: currentDate.toLocaleDateString('es-CL'),
     };
 
-    const updatedProducts = [...products, newProduct];
-
-    setProducts(updatedProducts);
+    setProducts([...products, newProduct]);
 
     if (newProduct.currentStock > 0) {
       const initialMovement = {
@@ -112,11 +111,7 @@ export default function AddProductScreen({
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <FormScreenWrapper>
       <Text style={styles.screenTitle}>Agregar producto</Text>
 
       <Text style={styles.description}>
@@ -171,19 +166,11 @@ export default function AddProductScreen({
         variant="secondary"
         onPress={() => goToScreen('home')}
       />
-    </ScrollView>
+    </FormScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
   screenTitle: {
     fontSize: 30,
     fontWeight: 'bold',

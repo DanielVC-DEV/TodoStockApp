@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../components/CustomButton';
+import FormScreenWrapper from '../components/FormScreenWrapper';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateMovementForm } from '../utils/movementValidations';
@@ -12,15 +13,21 @@ export default function StockMovementScreen({
   movements,
   setMovements,
   goToScreen,
+  showAppMessage,
 }) {
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [movementType, setMovementType] = useState('entrada');
+
   const [formData, setFormData] = useState({
-    productId: '',
-    type: '',
     quantity: '',
     reason: '',
   });
 
   const [errors, setErrors] = useState({});
+
+  const selectedProduct = products.find(
+    (product) => product.id === selectedProductId
+  );
 
   function handleChange(fieldName, value) {
     setFormData({
@@ -37,21 +44,31 @@ export default function StockMovementScreen({
   }
 
   function selectProduct(productId) {
-    handleChange('productId', productId);
-  }
+    setSelectedProductId(productId);
 
-  function selectType(type) {
-    handleChange('type', type);
+    if (errors.productId) {
+      setErrors({
+        ...errors,
+        productId: '',
+      });
+    }
   }
 
   function handleSaveMovement() {
-    const validationErrors = validateMovementForm(formData);
+    const validationErrors = validateMovementForm({
+      productId: selectedProductId,
+      type: movementType,
+      quantity: formData.quantity,
+      reason: formData.reason,
+    });
+
     const hasErrors = Object.keys(validationErrors).length > 0;
 
     if (hasErrors) {
       setErrors(validationErrors);
 
-      Alert.alert(
+      showAppMessage(
+        'error',
         'Datos incompletos',
         'Revisa los campos marcados antes de registrar el movimiento.'
       );
@@ -59,37 +76,40 @@ export default function StockMovementScreen({
       return;
     }
 
-    const selectedProduct = products.find(
-      (product) => product.id === formData.productId
-    );
-
     if (!selectedProduct) {
-      Alert.alert('Error', 'El producto seleccionado no existe.');
+      showAppMessage(
+        'error',
+        'Producto no encontrado',
+        'Selecciona un producto válido para registrar el movimiento.'
+      );
+
       return;
     }
 
     const movementQuantity = Number(formData.quantity);
 
     if (
-      formData.type === 'salida' &&
-      movementQuantity > selectedProduct.currentStock
+      movementType === 'salida' &&
+      movementQuantity > Number(selectedProduct.currentStock)
     ) {
-      Alert.alert(
+      showAppMessage(
+        'error',
         'Stock insuficiente',
-        'No puedes retirar más stock del que existe actualmente.'
+        'No puedes retirar más unidades de las que existen en stock.'
       );
+
       return;
     }
 
     const updatedProducts = products.map((product) => {
-      if (product.id !== selectedProduct.id) {
+      if (product.id !== selectedProductId) {
         return product;
       }
 
       const newStock =
-        formData.type === 'entrada'
-          ? product.currentStock + movementQuantity
-          : product.currentStock - movementQuantity;
+        movementType === 'entrada'
+          ? Number(product.currentStock) + movementQuantity
+          : Number(product.currentStock) - movementQuantity;
 
       return {
         ...product,
@@ -97,15 +117,17 @@ export default function StockMovementScreen({
       };
     });
 
+    const currentDate = new Date();
+
     const newMovement = {
       id: Date.now().toString(),
       productId: selectedProduct.id,
       productName: selectedProduct.name,
-      type: formData.type,
+      type: movementType,
       quantity: movementQuantity,
       reason: formData.reason.trim(),
-      createdAt: new Date().toLocaleDateString('es-CL'),
-      createdTime: new Date().toLocaleTimeString('es-CL', {
+      createdAt: currentDate.toLocaleDateString('es-CL'),
+      createdTime: currentDate.toLocaleTimeString('es-CL', {
         hour: '2-digit',
         minute: '2-digit',
       }),
@@ -114,7 +136,8 @@ export default function StockMovementScreen({
     setProducts(updatedProducts);
     setMovements([newMovement, ...movements]);
 
-    Alert.alert(
+    showAppMessage(
+      'success',
       'Movimiento registrado',
       'El stock fue actualizado correctamente.'
     );
@@ -123,62 +146,28 @@ export default function StockMovementScreen({
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <FormScreenWrapper>
       <Text style={styles.screenTitle}>Movimiento de stock</Text>
 
       <Text style={styles.description}>
-        Registra entradas o salidas de productos. Cada movimiento queda guardado
-        para mantener trazabilidad del inventario.
+        Registra entradas o salidas de productos para mantener actualizado el
+        inventario.
       </Text>
 
-      <Text style={styles.sectionTitle}>Seleccionar producto *</Text>
+      <Text style={styles.sectionTitle}>Tipo de movimiento</Text>
 
-      {products.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>
-            No hay productos registrados. Primero debes agregar un producto.
-          </Text>
-        </View>
-      ) : (
-        products.map((product) => (
-          <TouchableOpacity
-            key={product.id}
-            style={[
-              styles.optionCard,
-              formData.productId === product.id && styles.optionSelected,
-            ]}
-            onPress={() => selectProduct(product.id)}
-          >
-            <Text style={styles.optionTitle}>{product.name}</Text>
-            <Text style={styles.optionText}>
-              Stock actual: {product.currentStock} {product.unit}
-            </Text>
-          </TouchableOpacity>
-        ))
-      )}
-
-      {errors.productId ? (
-        <Text style={styles.errorText}>{errors.productId}</Text>
-      ) : null}
-
-      <Text style={styles.sectionTitle}>Tipo de movimiento *</Text>
-
-      <View style={styles.typeRow}>
+      <View style={styles.typeContainer}>
         <TouchableOpacity
           style={[
             styles.typeButton,
-            formData.type === 'entrada' && styles.typeSelected,
+            movementType === 'entrada' && styles.entryButtonSelected,
           ]}
-          onPress={() => selectType('entrada')}
+          onPress={() => setMovementType('entrada')}
         >
           <Text
             style={[
-              styles.typeText,
-              formData.type === 'entrada' && styles.typeTextSelected,
+              styles.typeButtonText,
+              movementType === 'entrada' && styles.typeButtonTextSelected,
             ]}
           >
             Entrada
@@ -188,14 +177,14 @@ export default function StockMovementScreen({
         <TouchableOpacity
           style={[
             styles.typeButton,
-            formData.type === 'salida' && styles.typeSelected,
+            movementType === 'salida' && styles.exitButtonSelected,
           ]}
-          onPress={() => selectType('salida')}
+          onPress={() => setMovementType('salida')}
         >
           <Text
             style={[
-              styles.typeText,
-              formData.type === 'salida' && styles.typeTextSelected,
+              styles.typeButtonText,
+              movementType === 'salida' && styles.typeButtonTextSelected,
             ]}
           >
             Salida
@@ -203,7 +192,54 @@ export default function StockMovementScreen({
         </TouchableOpacity>
       </View>
 
-      {errors.type ? <Text style={styles.errorText}>{errors.type}</Text> : null}
+      <Text style={styles.sectionTitle}>Producto</Text>
+
+      {errors.productId ? (
+        <Text style={styles.errorText}>{errors.productId}</Text>
+      ) : null}
+
+      {products.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Sin productos registrados</Text>
+
+          <Text style={styles.emptyText}>
+            Primero debes agregar productos al inventario.
+          </Text>
+        </View>
+      ) : (
+        products.map((product) => (
+          <TouchableOpacity
+            key={product.id}
+            style={[
+              styles.productOption,
+              selectedProductId === product.id && styles.productOptionSelected,
+            ]}
+            onPress={() => selectProduct(product.id)}
+          >
+            <View>
+              <Text
+                style={[
+                  styles.productName,
+                  selectedProductId === product.id &&
+                    styles.productNameSelected,
+                ]}
+              >
+                {product.name}
+              </Text>
+
+              <Text
+                style={[
+                  styles.productStock,
+                  selectedProductId === product.id &&
+                    styles.productStockSelected,
+                ]}
+              >
+                Stock actual: {product.currentStock} {product.unit}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))
+      )}
 
       <InputField
         label="Cantidad *"
@@ -216,14 +252,14 @@ export default function StockMovementScreen({
 
       <InputField
         label="Motivo *"
-        placeholder="Ej: Compra de mercadería, venta diaria, merma"
+        placeholder="Ej: Compra proveedor, venta diaria, merma..."
         value={formData.reason}
         onChangeText={(value) => handleChange('reason', value)}
         error={errors.reason}
       />
 
       <CustomButton
-        title="Guardar movimiento"
+        title="Registrar movimiento"
         onPress={handleSaveMovement}
       />
 
@@ -232,19 +268,11 @@ export default function StockMovementScreen({
         variant="secondary"
         onPress={() => goToScreen('home')}
       />
-    </ScrollView>
+    </FormScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
   screenTitle: {
     fontSize: 30,
     fontWeight: 'bold',
@@ -263,68 +291,91 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textDark,
     marginBottom: 10,
-    marginTop: 10,
   },
-  emptyCard: {
+  typeContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 22,
+  },
+  typeButton: {
+    flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    elevation: 2,
   },
-  emptyText: {
-    fontSize: 15,
+  entryButtonSelected: {
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
+  },
+  exitButtonSelected: {
+    backgroundColor: COLORS.danger,
+    borderColor: COLORS.danger,
+  },
+  typeButtonText: {
     color: COLORS.textMedium,
+    fontWeight: 'bold',
+    fontSize: 15,
   },
-  optionCard: {
+  typeButtonTextSelected: {
+    color: COLORS.white,
+  },
+  productOption: {
     backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
+    elevation: 2,
   },
-  optionSelected: {
+  productOptionSelected: {
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.infoLight,
   },
-  optionTitle: {
+  productName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textDark,
     marginBottom: 4,
   },
-  optionText: {
+  productNameSelected: {
+    color: COLORS.white,
+  },
+  productStock: {
     fontSize: 14,
     color: COLORS.textMedium,
   },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 10,
+  productStockSelected: {
+    color: COLORS.white,
   },
-  typeButton: {
-    flex: 1,
+  emptyCard: {
     backgroundColor: COLORS.white,
-    padding: 14,
-    borderRadius: 12,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    alignItems: 'center',
+    elevation: 2,
   },
-  typeSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  typeText: {
-    color: COLORS.textDark,
+  emptyTitle: {
+    fontSize: 17,
     fontWeight: 'bold',
+    color: COLORS.textDark,
+    marginBottom: 6,
   },
-  typeTextSelected: {
-    color: COLORS.white,
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.textMedium,
+    lineHeight: 21,
   },
   errorText: {
     color: COLORS.danger,
     fontSize: 13,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
 });

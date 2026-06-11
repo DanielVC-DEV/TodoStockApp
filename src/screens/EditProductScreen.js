@@ -1,34 +1,43 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
+import CategorySelector from '../components/CategorySelector';
 import CustomButton from '../components/CustomButton';
+import FormScreenWrapper from '../components/FormScreenWrapper';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateProductForm } from '../utils/productValidations';
-import CategorySelector from '../components/CategorySelector';
 
 export default function EditProductScreen({
-  route,
   products,
   setProducts,
-  movements,
-  setMovements,
+  productId,
   goToScreen,
   showAppMessage,
 }) {
-  const productId = route.params?.productId;
-
-  const productToEdit = products.find((product) => product.id === productId);
-
   const [formData, setFormData] = useState({
-    name: productToEdit?.name || '',
-    category: productToEdit?.category || '',
-    currentStock: productToEdit?.currentStock?.toString() || '',
-    minimumStock: productToEdit?.minimumStock?.toString() || '',
-    unit: productToEdit?.unit || '',
+    name: '',
+    category: '',
+    currentStock: '',
+    minimumStock: '',
+    unit: '',
   });
 
   const [errors, setErrors] = useState({});
+
+  const selectedProduct = products.find((product) => product.id === productId);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      setFormData({
+        name: selectedProduct.name,
+        category: selectedProduct.category,
+        currentStock: selectedProduct.currentStock.toString(),
+        minimumStock: selectedProduct.minimumStock.toString(),
+        unit: selectedProduct.unit,
+      });
+    }
+  }, [selectedProduct]);
 
   function handleChange(fieldName, value) {
     setFormData({
@@ -45,11 +54,11 @@ export default function EditProductScreen({
   }
 
   function handleUpdateProduct() {
-    if (!productToEdit) {
+    if (!selectedProduct) {
       showAppMessage(
         'error',
         'Producto no encontrado',
-        'No se pudo encontrar el producto que intentas editar.'
+        'No se pudo encontrar el producto seleccionado.'
       );
 
       goToScreen('inventory');
@@ -65,85 +74,64 @@ export default function EditProductScreen({
       showAppMessage(
         'error',
         'Datos incompletos',
-        'Revisa los campos marcados antes de actualizar el producto.'
+        'Revisa los campos marcados antes de guardar los cambios.'
       );
 
       return;
     }
 
-    const updatedName = formData.name.trim();
-
     const updatedProducts = products.map((product) => {
-      if (product.id !== productToEdit.id) {
+      if (product.id !== productId) {
         return product;
       }
 
       return {
         ...product,
-        name: updatedName,
+        name: formData.name.trim(),
         category: formData.category.trim(),
         currentStock: Number(formData.currentStock),
         minimumStock: Number(formData.minimumStock),
         unit: formData.unit.trim(),
-        updatedAt: new Date().toLocaleDateString('es-CL'),
-      };
-    });
-
-    const updatedMovements = movements.map((movement) => {
-      if (movement.productId !== productToEdit.id) {
-        return movement;
-      }
-
-      return {
-        ...movement,
-        productName: updatedName,
       };
     });
 
     setProducts(updatedProducts);
-    setMovements(updatedMovements);
 
     showAppMessage(
       'success',
       'Producto actualizado',
-      'El producto y su historial fueron actualizados correctamente.'
+      'Los cambios fueron guardados correctamente.'
     );
 
-    goToScreen('movementHistory');
+    goToScreen('inventory');
   }
 
-  if (!productToEdit) {
+  if (!selectedProduct) {
     return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
-        <Text style={styles.screenTitle}>Producto no encontrado</Text>
+      <FormScreenWrapper>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Producto no encontrado</Text>
 
-        <Text style={styles.description}>
-          El producto que intentas editar no existe o fue eliminado.
-        </Text>
+          <Text style={styles.emptyText}>
+            El producto que intentas editar no existe o fue eliminado.
+          </Text>
+        </View>
 
         <CustomButton
           title="Volver al inventario"
-          variant="secondary"
           onPress={() => goToScreen('inventory')}
         />
-      </ScrollView>
+      </FormScreenWrapper>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <FormScreenWrapper>
       <Text style={styles.screenTitle}>Editar producto</Text>
 
       <Text style={styles.description}>
-        Modifica los datos necesarios. Si cambias el nombre, también se
-        actualizará en el historial de movimientos.
+        Modifica los datos del producto seleccionado. Los cambios se verán
+        reflejados en el inventario.
       </Text>
 
       <InputField
@@ -186,26 +174,21 @@ export default function EditProductScreen({
         error={errors.unit}
       />
 
-      <CustomButton title="Guardar cambios" onPress={handleUpdateProduct} />
+      <CustomButton
+        title="Guardar cambios"
+        onPress={handleUpdateProduct}
+      />
 
       <CustomButton
-        title="Cancelar"
+        title="Volver al inventario"
         variant="secondary"
         onPress={() => goToScreen('inventory')}
       />
-    </ScrollView>
+    </FormScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
   screenTitle: {
     fontSize: 30,
     fontWeight: 'bold',
@@ -218,5 +201,26 @@ const styles = StyleSheet.create({
     color: COLORS.textMedium,
     lineHeight: 22,
     marginBottom: 22,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 30,
+    marginBottom: 20,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: COLORS.textMedium,
+    lineHeight: 22,
   },
 });

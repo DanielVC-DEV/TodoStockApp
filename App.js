@@ -1,91 +1,77 @@
+import { useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
 
 import AppMessage from './src/components/AppMessage';
-import COLORS from './src/constants/colors';
+
 import SCREEN_NAMES from './src/navigation/screenNames';
 
-import AddProductScreen from './src/screens/AddProductScreen';
-import DailyCountScreen from './src/screens/DailyCountScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import AddProductScreen from './src/screens/AddProductScreen';
 import EditProductScreen from './src/screens/EditProductScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
-import MovementHistoryScreen from './src/screens/MovementHistoryScreen';
 import StockMovementScreen from './src/screens/StockMovementScreen';
+import DailyCountScreen from './src/screens/DailyCountScreen';
+import MovementHistoryScreen from './src/screens/MovementHistoryScreen';
 import DailySummaryScreen from './src/screens/DailySummaryScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
-import { loadMovements, saveMovements } from './src/services/movementStorage';
-import { loadProducts, saveProducts } from './src/services/productStorage';
+import COLORS from './src/constants/colors';
+
+import { getProducts, saveProducts } from './src/services/productStorage';
+import { getMovements, saveMovements } from './src/services/movementStorage';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [appMessage, setAppMessage] = useState(null);
+
+  const [appMessage, setAppMessage] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
-    async function loadStoredData() {
-      try {
-        const storedProducts = await loadProducts();
-        const storedMovements = await loadMovements();
-
-        setProducts(storedProducts);
-        setMovements(storedMovements);
-      } catch (error) {
-        Alert.alert('Error', 'No se pudieron cargar los datos guardados.');
-      } finally {
-        setIsLoadingData(false);
-      }
-    }
-
-    loadStoredData();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (!isLoadingData) {
-      saveProducts(products).catch(() => {
-        showAppMessage(
-          'error',
-          'Error al guardar',
-          'No se pudieron guardar los productos.'
-        );
-      });
-    }
-  }, [products, isLoadingData]);
+    saveProducts(products);
+  }, [products]);
 
   useEffect(() => {
-    if (!isLoadingData) {
-      saveMovements(movements).catch(() => {
-        showAppMessage(
-          'error',
-          'Error al guardar',
-          'No se pudieron guardar los movimientos.'
-        );
-      });
-    }
-  }, [movements, isLoadingData]);
+    saveMovements(movements);
+  }, [movements]);
 
-  function showAppMessage(type, title, description) {
-    setAppMessage({
-      type,
-      title,
-      description,
-    });
+  async function loadInitialData() {
+    const storedProducts = await getProducts();
+    const storedMovements = await getMovements();
 
-    setTimeout(() => {
-      setAppMessage(null);
-    }, 3500);
+    setProducts(storedProducts);
+    setMovements(storedMovements);
   }
 
-  function getLowStockProducts() {
-    return products.filter(
-      (product) => product.currentStock <= product.minimumStock
-    );
+  function showAppMessage(type, title, message) {
+    setAppMessage({
+      visible: true,
+      type,
+      title,
+      message,
+    });
+  }
+
+  function hideAppMessage() {
+    setAppMessage({
+      visible: false,
+      type: 'info',
+      title: '',
+      message: '',
+    });
   }
 
   function navigateToScreen(navigation, screenKey, params = {}) {
@@ -98,6 +84,7 @@ export default function App() {
       dailyCount: SCREEN_NAMES.DAILY_COUNT,
       movementHistory: SCREEN_NAMES.MOVEMENT_HISTORY,
       dailySummary: SCREEN_NAMES.DAILY_SUMMARY,
+      notifications: SCREEN_NAMES.NOTIFICATIONS,
     };
 
     if (screenKey === 'home') {
@@ -108,22 +95,34 @@ export default function App() {
     navigation.navigate(screenMap[screenKey], params);
   }
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+  const totalLowStockProducts = products.filter(
+    (product) =>
+      Number(product.currentStock) > 0 &&
+      Number(product.currentStock) <= Number(product.minimumStock)
+  ).length;
 
+  const totalOutOfStockProducts = products.filter(
+    (product) => Number(product.currentStock) === 0
+  ).length;
+
+  const totalNotifications =
+    totalLowStockProducts + totalOutOfStockProducts;
+
+  return (
+    <>
       <NavigationContainer>
+        <StatusBar style="light" />
+
         <Stack.Navigator
           initialRouteName={SCREEN_NAMES.HOME}
           screenOptions={{
             headerStyle: {
-              backgroundColor: COLORS.white,
+              backgroundColor: COLORS.primary,
             },
+            headerTintColor: COLORS.white,
             headerTitleStyle: {
               fontWeight: 'bold',
-              color: COLORS.textDark,
             },
-            headerTintColor: COLORS.primary,
             contentStyle: {
               backgroundColor: COLORS.background,
             },
@@ -136,9 +135,10 @@ export default function App() {
             {({ navigation }) => (
               <HomeScreen
                 totalProducts={products.length}
-                totalLowStock={getLowStockProducts().length}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                totalLowStock={totalNotifications}
+                movements={movements}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
               />
             )}
@@ -161,21 +161,19 @@ export default function App() {
               />
             )}
           </Stack.Screen>
-          
+
           <Stack.Screen
             name={SCREEN_NAMES.EDIT_PRODUCT}
             options={{ title: 'Editar producto' }}
           >
             {({ navigation, route }) => (
               <EditProductScreen
-                route={route}
                 products={products}
                 setProducts={setProducts}
-                movements={movements}
-                setMovements={setMovements}
+                productId={route.params?.productId}
                 goToScreen={(screenKey, params) =>
                   navigateToScreen(navigation, screenKey, params)
-              }
+                }
                 showAppMessage={showAppMessage}
               />
             )}
@@ -207,8 +205,8 @@ export default function App() {
                 setProducts={setProducts}
                 movements={movements}
                 setMovements={setMovements}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
                 showAppMessage={showAppMessage}
               />
@@ -225,13 +223,14 @@ export default function App() {
                 setProducts={setProducts}
                 movements={movements}
                 setMovements={setMovements}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
                 showAppMessage={showAppMessage}
               />
             )}
           </Stack.Screen>
+
           <Stack.Screen
             name={SCREEN_NAMES.DAILY_SUMMARY}
             options={{ title: 'Resumen del día' }}
@@ -246,9 +245,10 @@ export default function App() {
               />
             )}
           </Stack.Screen>
+
           <Stack.Screen
             name={SCREEN_NAMES.MOVEMENT_HISTORY}
-            options={{ title: 'Historial' }}
+            options={{ title: 'Historial de movimientos' }}
           >
             {({ navigation }) => (
               <MovementHistoryScreen
@@ -260,19 +260,30 @@ export default function App() {
               />
             )}
           </Stack.Screen>
+
+          <Stack.Screen
+            name={SCREEN_NAMES.NOTIFICATIONS}
+            options={{ title: 'Notificaciones' }}
+          >
+            {({ navigation }) => (
+              <NotificationsScreen
+                products={products}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
+                }
+              />
+            )}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
 
       <AppMessage
-        message={appMessage}
-        onClose={() => setAppMessage(null)}
+        visible={appMessage.visible}
+        type={appMessage.type}
+        title={appMessage.title}
+        message={appMessage.message}
+        onClose={hideAppMessage}
       />
-    </View>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

@@ -7,6 +7,7 @@ const SCREEN_NAMES = {
   DAILY_COUNT: 'ConteoCierre',
   MOVEMENT_HISTORY: 'HistorialMovimientos',
   DAILY_SUMMARY: 'ResumenDia',
+  NOTIFICATIONS: 'Notificaciones',
 };
 
 export default SCREEN_NAMES;

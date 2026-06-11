@@ -2,51 +2,74 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import COLORS from '../constants/colors';
 
-export default function AppMessage({ message, onClose }) {
-  if (!message) {
+export default function AppMessage({
+  visible,
+  type = 'info',
+  title,
+  message,
+  onClose,
+}) {
+  if (!visible) {
     return null;
   }
 
-  const stylesByType = getStylesByType(message.type);
+  const stylesByType = getStylesByType(type);
 
   return (
     <View style={[styles.container, stylesByType.container]}>
-      <View style={[styles.iconCircle, stylesByType.iconCircle]}>
-        <Text style={styles.icon}>{stylesByType.icon}</Text>
+      <View style={[styles.iconBox, stylesByType.iconBox]}>
+        <Text style={styles.iconText}>{getIcon(type)}</Text>
       </View>
 
-      <View style={styles.textContainer}>
+      <View style={styles.textBox}>
         <Text style={[styles.title, stylesByType.title]}>
-          {message.title}
+          {title || 'Aviso'}
         </Text>
 
-        <Text style={[styles.description, stylesByType.description]}>
-          {message.description}
-        </Text>
+        {message ? (
+          <Text style={[styles.message, stylesByType.message]}>
+            {message}
+          </Text>
+        ) : null}
       </View>
 
-      <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
         <Text style={[styles.closeText, stylesByType.title]}>×</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
+function getIcon(type) {
+  if (type === 'success') {
+    return '✓';
+  }
+
+  if (type === 'error') {
+    return '!';
+  }
+
+  if (type === 'warning') {
+    return '!';
+  }
+
+  return 'i';
+}
+
 function getStylesByType(type) {
   if (type === 'success') {
     return {
-      icon: '✓',
       container: {
         backgroundColor: COLORS.successLight,
         borderColor: COLORS.success,
       },
-      iconCircle: {
+      iconBox: {
         backgroundColor: COLORS.success,
       },
       title: {
         color: COLORS.successDark,
       },
-      description: {
+      message: {
         color: COLORS.successDark,
       },
     };
@@ -54,18 +77,17 @@ function getStylesByType(type) {
 
   if (type === 'error') {
     return {
-      icon: '✕',
       container: {
         backgroundColor: COLORS.dangerLight,
         borderColor: COLORS.danger,
       },
-      iconCircle: {
+      iconBox: {
         backgroundColor: COLORS.danger,
       },
       title: {
         color: COLORS.dangerDark,
       },
-      description: {
+      message: {
         color: COLORS.dangerDark,
       },
     };
@@ -73,36 +95,34 @@ function getStylesByType(type) {
 
   if (type === 'warning') {
     return {
-      icon: '!',
       container: {
         backgroundColor: COLORS.warningLight,
         borderColor: COLORS.warning,
       },
-      iconCircle: {
+      iconBox: {
         backgroundColor: COLORS.warning,
       },
       title: {
         color: COLORS.warningDark,
       },
-      description: {
+      message: {
         color: COLORS.warningDark,
       },
     };
   }
 
   return {
-    icon: 'i',
     container: {
       backgroundColor: COLORS.infoLight,
-      borderColor: COLORS.primary,
+      borderColor: COLORS.info,
     },
-    iconCircle: {
-      backgroundColor: COLORS.primary,
+    iconBox: {
+      backgroundColor: COLORS.info,
     },
     title: {
       color: COLORS.infoText,
     },
-    description: {
+    message: {
       color: COLORS.infoText,
     },
   };
@@ -111,31 +131,31 @@ function getStylesByType(type) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 45,
-    left: 16,
-    right: 16,
-    zIndex: 100,
-    borderRadius: 16,
-    borderWidth: 1,
+    top: 60,
+    left: 18,
+    right: 18,
+    zIndex: 999,
+    borderRadius: 18,
     padding: 14,
+    borderWidth: 1,
+    elevation: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 8,
   },
-  iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
+  iconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
-  icon: {
+  iconText: {
     color: COLORS.white,
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
   },
-  textContainer: {
+  textBox: {
     flex: 1,
   },
   title: {
@@ -143,7 +163,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 2,
   },
-  description: {
+  message: {
     fontSize: 13,
     lineHeight: 18,
   },
@@ -152,7 +172,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   closeText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
   },
 });

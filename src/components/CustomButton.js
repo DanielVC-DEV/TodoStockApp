@@ -6,65 +6,95 @@ export default function CustomButton({
   title,
   onPress,
   variant = 'primary',
+  disabled = false,
 }) {
-  const buttonStyle = getButtonStyle(variant);
-  const textStyle = getTextStyle(variant);
+  const buttonStyle = getButtonStyle(variant, disabled);
+  const textStyle = getTextStyle(variant, disabled);
 
   return (
     <TouchableOpacity
       style={[styles.button, buttonStyle]}
       onPress={onPress}
-      activeOpacity={0.8}
+      disabled={disabled}
+      activeOpacity={0.85}
     >
       <Text style={[styles.buttonText, textStyle]}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
-function getButtonStyle(variant) {
+function getButtonStyle(variant, disabled) {
+  if (disabled) {
+    return {
+      backgroundColor: COLORS.border,
+      borderColor: COLORS.border,
+    };
+  }
+
   if (variant === 'secondary') {
-    return styles.secondaryButton;
+    return {
+      backgroundColor: COLORS.secondaryLight,
+      borderColor: COLORS.secondary,
+    };
   }
 
   if (variant === 'danger') {
-    return styles.dangerButton;
+    return {
+      backgroundColor: COLORS.danger,
+      borderColor: COLORS.danger,
+    };
   }
 
-  return styles.primaryButton;
+  if (variant === 'outline') {
+    return {
+      backgroundColor: COLORS.white,
+      borderColor: COLORS.primary,
+    };
+  }
+
+  return {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  };
 }
 
-function getTextStyle(variant) {
-  if (variant === 'secondary') {
-    return styles.secondaryText;
+function getTextStyle(variant, disabled) {
+  if (disabled) {
+    return {
+      color: COLORS.textLight,
+    };
   }
 
-  return styles.primaryText;
+  if (variant === 'secondary') {
+    return {
+      color: COLORS.secondaryDark,
+    };
+  }
+
+  if (variant === 'outline') {
+    return {
+      color: COLORS.primary,
+    };
+  }
+
+  return {
+    color: COLORS.white,
+  };
 }
 
 const styles = StyleSheet.create({
   button: {
-    padding: 16,
-    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 12,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-  },
-  secondaryButton: {
-    backgroundColor: COLORS.secondaryButton,
-  },
-  dangerButton: {
-    backgroundColor: COLORS.danger,
+    borderWidth: 1.5,
+    elevation: 2,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  primaryText: {
-    color: COLORS.white,
-  },
-  secondaryText: {
-    color: COLORS.textDark,
   },
 });

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
+import CategorySelector from '../components/CategorySelector';
 import CustomButton from '../components/CustomButton';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateProductForm } from '../utils/productValidations';
-import CategorySelector from '../components/CategorySelector';
 
 export default function AddProductScreen({
   products,
@@ -15,7 +15,6 @@ export default function AddProductScreen({
   goToScreen,
   showAppMessage,
 }) {
-  
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -68,6 +67,8 @@ export default function AddProductScreen({
       return;
     }
 
+    const currentDate = new Date();
+
     const newProduct = {
       id: Date.now().toString(),
       name: formData.name.trim(),
@@ -75,10 +76,12 @@ export default function AddProductScreen({
       currentStock: Number(formData.currentStock),
       minimumStock: Number(formData.minimumStock),
       unit: formData.unit.trim(),
-      createdAt: new Date().toLocaleDateString('es-CL'),
+      createdAt: currentDate.toLocaleDateString('es-CL'),
     };
 
     const updatedProducts = [...products, newProduct];
+
+    setProducts(updatedProducts);
 
     if (newProduct.currentStock > 0) {
       const initialMovement = {
@@ -88,8 +91,8 @@ export default function AddProductScreen({
         type: 'entrada',
         quantity: newProduct.currentStock,
         reason: 'Registro inicial del producto',
-        createdAt: new Date().toLocaleDateString('es-CL'),
-        createdTime: new Date().toLocaleTimeString('es-CL', {
+        createdAt: currentDate.toLocaleDateString('es-CL'),
+        createdTime: currentDate.toLocaleTimeString('es-CL', {
           hour: '2-digit',
           minute: '2-digit',
         }),
@@ -97,8 +100,6 @@ export default function AddProductScreen({
 
       setMovements([initialMovement, ...movements]);
     }
-
-    setProducts(updatedProducts);
 
     showAppMessage(
       'success',
@@ -163,10 +164,7 @@ export default function AddProductScreen({
         error={errors.unit}
       />
 
-      <CustomButton
-        title="Guardar producto"
-        onPress={handleSaveProduct}
-      />
+      <CustomButton title="Guardar producto" onPress={handleSaveProduct} />
 
       <CustomButton
         title="Volver al inicio"

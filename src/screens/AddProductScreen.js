@@ -10,9 +10,12 @@ import CategorySelector from '../components/CategorySelector';
 export default function AddProductScreen({
   products,
   setProducts,
+  movements,
+  setMovements,
   goToScreen,
   showAppMessage,
 }) {
+  
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -75,7 +78,27 @@ export default function AddProductScreen({
       createdAt: new Date().toLocaleDateString('es-CL'),
     };
 
-    setProducts([...products, newProduct]);
+    const updatedProducts = [...products, newProduct];
+
+    if (newProduct.currentStock > 0) {
+      const initialMovement = {
+        id: `${Date.now()}-entrada-inicial`,
+        productId: newProduct.id,
+        productName: newProduct.name,
+        type: 'entrada',
+        quantity: newProduct.currentStock,
+        reason: 'Registro inicial del producto',
+        createdAt: new Date().toLocaleDateString('es-CL'),
+        createdTime: new Date().toLocaleTimeString('es-CL', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      };
+
+      setMovements([initialMovement, ...movements]);
+    }
+
+    setProducts(updatedProducts);
 
     showAppMessage(
       'success',

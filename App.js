@@ -150,8 +150,10 @@ export default function App() {
               <AddProductScreen
                 products={products}
                 setProducts={setProducts}
-                goToScreen={(screenKey) =>
-                  navigateToScreen(navigation, screenKey)
+                movements={movements}
+                setMovements={setMovements}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
                 }
                 showAppMessage={showAppMessage}
               />

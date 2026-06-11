@@ -1,13 +1,85 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import CustomButton from '../components/CustomButton';
 import COLORS from '../constants/colors';
+
+const MOVEMENT_FILTERS = [
+  {
+    label: 'Todos',
+    value: 'todos',
+  },
+  {
+    label: 'Entradas',
+    value: 'entrada',
+  },
+  {
+    label: 'Salidas',
+    value: 'salida',
+  },
+  {
+    label: 'Conteos',
+    value: 'conteo_cierre',
+  },
+];
 
 export default function MovementHistoryScreen({
   movements,
   products,
   goToScreen,
 }) {
+  const [searchText, setSearchText] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('todos');
+
+  function getProductName(movement) {
+    const currentProduct = products.find(
+      (product) => product.id === movement.productId
+    );
+
+    return currentProduct ? currentProduct.name : movement.productName;
+  }
+
+  const filteredMovements = useMemo(() => {
+    return movements.filter((movement) => {
+      const productName = getProductName(movement).toLowerCase();
+
+      const matchesSearch = productName.includes(searchText.toLowerCase());
+
+      const matchesFilter =
+        selectedFilter === 'todos' || movement.type === selectedFilter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [movements, products, searchText, selectedFilter]);
+
+  function clearFilters() {
+    setSearchText('');
+    setSelectedFilter('todos');
+  }
+
+  function getMovementLabel(type) {
+    if (type === 'entrada') {
+      return 'Entrada';
+    }
+
+    if (type === 'salida') {
+      return 'Salida';
+    }
+
+    if (type === 'conteo_cierre') {
+      return 'Conteo';
+    }
+
+    return 'Movimiento';
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -21,6 +93,59 @@ export default function MovementHistoryScreen({
         inventario.
       </Text>
 
+      <View style={styles.filtersCard}>
+        <Text style={styles.filterTitle}>Buscar por producto</Text>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Ej: bebida, pan, papas..."
+          placeholderTextColor={COLORS.textLight}
+          value={searchText}
+          onChangeText={setSearchText}
+        />
+
+        <Text style={styles.filterTitle}>Tipo de movimiento</Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+        >
+          {MOVEMENT_FILTERS.map((filter) => (
+            <TouchableOpacity
+              key={filter.value}
+              style={[
+                styles.filterButton,
+                selectedFilter === filter.value && styles.filterButtonSelected,
+              ]}
+              onPress={() => setSelectedFilter(filter.value)}
+            >
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  selectedFilter === filter.value &&
+                    styles.filterButtonTextSelected,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {(searchText !== '' || selectedFilter !== 'todos') && (
+          <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+            <Text style={styles.clearButtonText}>Limpiar filtros</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.resultBox}>
+        <Text style={styles.resultText}>
+          Movimientos encontrados: {filteredMovements.length}
+        </Text>
+      </View>
+
       {movements.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Sin movimientos registrados</Text>
@@ -30,15 +155,17 @@ export default function MovementHistoryScreen({
             esta sección.
           </Text>
         </View>
-      ) : (
-        movements.map((movement) => {
-          const currentProduct = products.find(
-            (product) => product.id === movement.productId
-          );
+      ) : filteredMovements.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Sin resultados</Text>
 
-          const productName = currentProduct
-            ? currentProduct.name
-            : movement.productName;
+          <Text style={styles.emptyText}>
+            No se encontraron movimientos con los filtros aplicados.
+          </Text>
+        </View>
+      ) : (
+        filteredMovements.map((movement) => {
+          const productName = getProductName(movement);
 
           return (
             <View key={movement.id} style={styles.movementCard}>
@@ -53,16 +180,12 @@ export default function MovementHistoryScreen({
                     movement.type === 'conteo_cierre' && styles.countBadge,
                   ]}
                 >
-                  {movement.type === 'entrada' && 'Entrada'}
-                  {movement.type === 'salida' && 'Salida'}
-                  {movement.type === 'conteo_cierre' && 'Conteo'}
+                  {getMovementLabel(movement.type)}
                 </Text>
               </View>
 
               {movement.type !== 'conteo_cierre' ? (
-                <Text style={styles.text}>
-                  Cantidad: {movement.quantity}
-                </Text>
+                <Text style={styles.text}>Cantidad: {movement.quantity}</Text>
               ) : null}
 
               {movement.type === 'conteo_cierre' ? (
@@ -132,6 +255,74 @@ const styles = StyleSheet.create({
     color: COLORS.textMedium,
     lineHeight: 22,
     marginBottom: 22,
+  },
+  filtersCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    marginBottom: 8,
+  },
+  searchInput: {
+    backgroundColor: COLORS.background,
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 16,
+    color: COLORS.textDark,
+  },
+  filterScroll: {
+    marginBottom: 10,
+  },
+  filterButton: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  filterButtonSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterButtonText: {
+    color: COLORS.textMedium,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  filterButtonTextSelected: {
+    color: COLORS.white,
+  },
+  clearButton: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  resultBox: {
+    backgroundColor: COLORS.infoLight,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  resultText: {
+    color: COLORS.infoText,
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   emptyCard: {
     backgroundColor: COLORS.white,

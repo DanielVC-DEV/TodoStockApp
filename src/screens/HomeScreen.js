@@ -54,7 +54,11 @@ export default function HomeScreen({
         variant="secondary"
         onPress={() => goToScreen('dailyCount')}
       />
-
+      <CustomButton
+        title="Resumen del día"
+        variant="secondary"
+        onPress={() => goToScreen('dailySummary')}
+      />
       <CustomButton
         title="Historial de movimientos"
         variant="secondary"

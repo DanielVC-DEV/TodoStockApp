@@ -15,6 +15,7 @@ import EditProductScreen from './src/screens/EditProductScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import MovementHistoryScreen from './src/screens/MovementHistoryScreen';
 import StockMovementScreen from './src/screens/StockMovementScreen';
+import DailySummaryScreen from './src/screens/DailySummaryScreen';
 
 import { loadMovements, saveMovements } from './src/services/movementStorage';
 import { loadProducts, saveProducts } from './src/services/productStorage';
@@ -96,6 +97,7 @@ export default function App() {
       stockMovement: SCREEN_NAMES.STOCK_MOVEMENT,
       dailyCount: SCREEN_NAMES.DAILY_COUNT,
       movementHistory: SCREEN_NAMES.MOVEMENT_HISTORY,
+      dailySummary: SCREEN_NAMES.DAILY_SUMMARY,
     };
 
     if (screenKey === 'home') {
@@ -230,7 +232,20 @@ export default function App() {
               />
             )}
           </Stack.Screen>
-
+          <Stack.Screen
+            name={SCREEN_NAMES.DAILY_SUMMARY}
+            options={{ title: 'Resumen del día' }}
+          >
+            {({ navigation }) => (
+              <DailySummaryScreen
+                products={products}
+                movements={movements}
+                goToScreen={(screenKey, params) =>
+                  navigateToScreen(navigation, screenKey, params)
+                }
+              />
+            )}
+          </Stack.Screen>
           <Stack.Screen
             name={SCREEN_NAMES.MOVEMENT_HISTORY}
             options={{ title: 'Historial' }}

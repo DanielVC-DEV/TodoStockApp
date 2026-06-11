@@ -5,6 +5,7 @@ import CustomButton from '../components/CustomButton';
 import InputField from '../components/InputField';
 import COLORS from '../constants/colors';
 import { validateProductForm } from '../utils/productValidations';
+import CategorySelector from '../components/CategorySelector';
 
 export default function EditProductScreen({
   route,
@@ -153,11 +154,9 @@ export default function EditProductScreen({
         error={errors.name}
       />
 
-      <InputField
-        label="Categoría *"
-        placeholder="Ej: Insumo, bebida, limpieza"
-        value={formData.category}
-        onChangeText={(value) => handleChange('category', value)}
+      <CategorySelector
+        selectedCategory={formData.category}
+        onSelectCategory={(category) => handleChange('category', category)}
         error={errors.category}
       />
 
